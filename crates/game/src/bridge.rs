@@ -34,6 +34,7 @@ pub enum Command {
     Active(bool),
     Move(Move, bool),
     ClearMoves,
+    Hurry(bool),
     Look { yaw: f32, pitch: f32 },
     Interact,
     Reset,
@@ -43,6 +44,7 @@ pub struct Callbacks {
     pub on_ready: js_sys::Function,
     pub on_target: js_sys::Function,
     pub on_toast: js_sys::Function,
+    pub on_step: js_sys::Function,
     pub on_error: js_sys::Function,
 }
 
@@ -87,6 +89,18 @@ pub fn toast(message: &str) {
     call(|c| &c.on_toast, JsValue::from_str(message));
 }
 
+/// A footfall: `loudness` around 1 at walking pace, and whether the foot
+/// landed on the rug (which muffles it) rather than bare wood.
+pub fn step(loudness: f32, on_rug: bool) {
+    CALLBACKS.with(|slot| {
+        if let Some(callbacks) = slot.borrow().as_ref()
+            && let Err(error) = callbacks.on_step.call2(&JsValue::NULL, &JsValue::from_f64(loudness.into()), &JsValue::from_bool(on_rug))
+        {
+            error!("overlay callback failed: {error:?}");
+        }
+    });
+}
+
 pub fn fail(message: &str) {
     call(|c| &c.on_error, JsValue::from_str(message));
 }
@@ -102,6 +116,12 @@ pub fn set_move(direction: &str, pressed: bool) {
     if let Some(direction) = Move::parse(direction) {
         push(Command::Move(direction, pressed));
     }
+}
+
+/// Walks a little faster while `hurrying` (the page maps this to Shift).
+#[wasm_bindgen]
+pub fn set_hurry(hurrying: bool) {
+    push(Command::Hurry(hurrying));
 }
 
 #[wasm_bindgen]

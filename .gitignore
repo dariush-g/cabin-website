@@ -72,3 +72,6 @@ node_modules/
 target/
 dist/
 web/src/wasm/
+
+# Local Chrome profile from headless browser testing
+profile/

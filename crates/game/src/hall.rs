@@ -42,6 +42,19 @@ pub fn glow(code: &str, strength: f32) -> LinearRgba {
     LinearRgba::rgb(color.red * strength, color.green * strength, color.blue * strength)
 }
 
+/// Gives a mesh flat, per-triangle normals, for the low-poly look.
+pub fn facet(mesh: Mesh) -> Mesh {
+    mesh.with_duplicated_vertices().with_computed_flat_normals()
+}
+
+/// The runner rug's footprint (see `setup`), where footsteps fall soft.
+const RUG: (f32, f32, f32, f32) = (0.15, -0.7, 2.5, 6.0);
+
+pub fn on_rug(x: f32, z: f32) -> bool {
+    let (cx, cz, width, depth) = RUG;
+    (x - cx).abs() < width / 2.0 && (z - cz).abs() < depth / 2.0
+}
+
 /// An axis-aligned footprint the visitor can't walk into.
 #[derive(Clone, Copy)]
 pub struct Collider {
@@ -123,7 +136,7 @@ impl Kit<'_, '_, '_> {
     }
 
     pub fn mesh(&mut self, data: MeshData) -> Handle<Mesh> {
-        self.meshes.add(data.build())
+        self.meshes.add(facet(data.build()))
     }
 
     pub fn spawn(
@@ -153,12 +166,12 @@ impl Kit<'_, '_, '_> {
     }
 
     pub fn cylinder(&mut self, top: f32, bottom: f32, height: f32, material: &Handle<StandardMaterial>, at: [f32; 3]) -> Entity {
-        let mesh = self.mesh(meshes::frustum(top, bottom, height, 32, false));
+        let mesh = self.mesh(meshes::frustum(top, bottom, height, 7, false));
         self.spawn(mesh, material, Transform::from_translation(at.into()), None)
     }
 
     pub fn sphere(&mut self, radius: f32, material: &Handle<StandardMaterial>, at: [f32; 3]) -> Entity {
-        let mesh = self.meshes.add(Sphere::new(radius).mesh().uv(20, 14));
+        let mesh = self.meshes.add(facet(Sphere::new(radius).mesh().uv(8, 6)));
         self.spawn(mesh, material, Transform::from_translation(at.into()), None)
     }
 
@@ -274,7 +287,7 @@ pub fn setup(
     }
     let frost_image = kit.image(textures::frost(&mut rng), false);
     let frost = kit.materials.add(StandardMaterial {
-        base_color: unlit("#ffffff", 0.75),
+        base_color: unlit("#9fb2d6", 0.45),
         base_color_texture: Some(frost_image),
         unlit: true,
         alpha_mode: AlphaMode::Blend,
@@ -313,7 +326,8 @@ pub fn setup(
         perceptual_roughness: 1.0,
         ..default()
     });
-    kit.cuboid([2.5, 0.025, 6.0], &rug, [0.15, 0.02, -0.7]);
+    let (rug_x, rug_z, rug_width, rug_depth) = RUG;
+    kit.cuboid([rug_width, 0.025, rug_depth], &rug, [rug_x, 0.02, rug_z]);
     let fringe = kit.mat("#9b8e6e", 0.8, 0.0);
     let fringe_mesh = kit.mesh(meshes::cuboid(0.013, 0.009, 0.13));
     for i in 0..60 {
@@ -355,7 +369,7 @@ pub fn setup(
         cull_mode: None,
         ..default()
     });
-    let bowl_mesh = kit.mesh(meshes::sphere_segment(0.17, 24, 12, PI * 0.52));
+    let bowl_mesh = kit.mesh(meshes::sphere_segment(0.17, 8, 4, PI * 0.52));
     let bowl = kit.spawn(
         bowl_mesh,
         &ceramic,
@@ -388,19 +402,42 @@ pub fn setup(
     );
     kit.no_shadow(page);
 
-    // Upholstered window bench.
-    kit.cuboid([0.88, 0.16, 2.0], &wood, [-4.02, 0.43, -0.5]);
-    let upholstery = kit.mat("#8e896e", 0.8, 0.0);
-    kit.cuboid([0.92, 0.15, 2.06], &upholstery, [-4.02, 0.575, -0.5]);
-    for z in [-1.32f32, 0.32] {
-        for x in [-4.32f32, -3.72] {
-            kit.cuboid([0.07, 0.4, 0.07], &wood, [x, 0.2, z]);
+    // Upholstered window seat: a panelled wooden base on tapered feet, two
+    // seat cushions, back cushions leaning on the wall under the sill, and a
+    // throw pillow.
+    kit.cuboid([0.86, 0.3, 2.0], &wood, [-4.02, 0.29, -0.5]);
+    kit.cuboid([0.9, 0.035, 2.04], &dark_wood, [-4.02, 0.457, -0.5]);
+    for z in [-0.95f32, -0.05] {
+        // Raised panels on the front of the base.
+        kit.cuboid([0.015, 0.035, 0.8], &dark_wood, [-3.585, 0.39, z]);
+        kit.cuboid([0.015, 0.035, 0.8], &dark_wood, [-3.585, 0.19, z]);
+        for dz in [-0.4f32, 0.4] {
+            kit.cuboid([0.015, 0.235, 0.035], &dark_wood, [-3.585, 0.29, z + dz]);
+        }
+    }
+    let foot = kit.mesh(meshes::frustum(0.035, 0.024, 0.14, 6, false));
+    for z in [-1.44f32, 0.44] {
+        for x in [-4.4f32, -3.64] {
+            kit.spawn(foot.clone(), &dark_wood, Transform::from_xyz(x, 0.07, z), None);
         }
     }
     colliders.block(-4.02, -0.5, 1.0, 2.2);
-    let cushion_fabric = kit.mat("#a99b78", 0.8, 0.0);
-    let cushion = kit.cuboid([0.57, 0.18, 0.56], &cushion_fabric, [-4.05, 0.73, -1.07]);
-    kit.place(cushion, [-4.05, 0.73, -1.07], Quat::from_rotation_y(0.2));
+    let upholstery = kit.mat("#8e896e", 0.95, 0.0);
+    let seat = kit.meshes.add(meshes::cushion(Vec3::new(0.84, 0.15, 0.98), 0.05, 0.022, 8).build());
+    let back = kit.meshes.add(meshes::cushion(Vec3::new(0.14, 0.3, 0.96), 0.05, 0.02, 8).build());
+    for z in [-0.995f32, -0.005] {
+        kit.spawn(seat.clone(), &upholstery, Transform::from_xyz(-3.99, 0.55, z), None);
+        // Leaning back toward the wall, clear of the sill above.
+        kit.spawn(back.clone(), &upholstery, Transform::from_xyz(-4.35, 0.77, z).with_rotation(Quat::from_rotation_z(0.16)), None);
+    }
+    let cushion_fabric = kit.mat("#a99b78", 0.95, 0.0);
+    let pillow = kit.meshes.add(meshes::cushion(Vec3::new(0.12, 0.4, 0.4), 0.05, 0.035, 8).build());
+    kit.spawn(
+        pillow,
+        &cushion_fabric,
+        Transform::from_xyz(-4.15, 0.8, -1.2).with_rotation(Quat::from_rotation_y(0.3) * Quat::from_rotation_z(0.3) * Quat::from_rotation_x(0.1)),
+        None,
+    );
 
     // Coat stand and a hanging wool coat.
     kit.cylinder(0.26, 0.32, 0.09, &dark_wood, [3.7, 0.05, 4.4]);
@@ -438,28 +475,48 @@ pub fn setup(
 
     spawn_pendant(&mut kit, &brass, &dark_wood);
 
-    // Overcast daylight through the window, and a broad fill standing in for
-    // light bounced off the ceiling.
-    if !crate::flag("norect") { commands.spawn((
-        RectLight {
-            color: hex("#ccdfef"),
-            intensity: 5.0 * 4.8 * 2.2 * PI,
-            width: 4.8,
-            height: 2.2,
-            range: 14.0,
-        },
-        Transform::from_xyz(-4.77, 2.05, -0.5).looking_at(Vec3::new(0.0, 1.2, -0.5), Vec3::Y),
-    ));
-    commands.spawn((
-        RectLight {
-            color: hex("#ead7b3"),
-            intensity: 0.8 * 5.0 * 6.0 * PI,
-            width: 5.0,
-            height: 6.0,
-            range: 10.0,
-        },
-        Transform::from_xyz(0.0, 3.7, -0.8).looking_at(Vec3::new(0.0, 0.0, -0.8), Vec3::Z),
-    )); }
+    // Night: a faint glow off the snow through the window, and a weak warm
+    // fill standing in for lamplight bounced off the ceiling. The Three.js scene used rectangular area
+    // lights; on WebGL 2 those cost so much per pixel that the frame rate
+    // fell to about a third. Wide, shadowless spotlights at the same places
+    // stand in for them: matching on-axis intensity, an area light of
+    // luminance L and area A becomes a spot of 4π·L·A lumens, and a zero inner
+    // angle approximates the area light's cosine falloff. A large radius
+    // keeps highlights broad, like reflections of a big light. `?rect`
+    // restores the area lights for comparison.
+    let area_lights = crate::flag("rect");
+    //
+    // An area light also grazes whatever sits beside it (the window's bench,
+    // sill and curtains), which a spot in the same plane misses. Each spot
+    // therefore sits `setback` metres behind its light, brightened by the
+    // inverse-square loss at the room's centre, so those fall inside its cone.
+    for (color, luminance, width, height, range, at, target, up, setback, middle) in [
+        ("#7f95bf", 0.9, 4.8, 2.2, 14.0, Vec3::new(-4.77, 2.05, -0.5), Vec3::new(0.0, 1.2, -0.5), Vec3::Y, 1.0f32, 4.8f32),
+        ("#e8c9a0", 0.2, 5.0, 6.0, 10.0, Vec3::new(0.0, 3.7, -0.8), Vec3::new(0.0, 0.0, -0.8), Vec3::Z, 0.0, 2.5),
+    ] {
+        let transform = Transform::from_translation(at).looking_at(target, up);
+        if area_lights {
+            commands.spawn((
+                RectLight { color: hex(color), intensity: luminance * width * height * PI, width, height, range },
+                transform,
+            ));
+        } else {
+            let gain = ((middle + setback) / middle).powi(2);
+            commands.spawn((
+                SpotLight {
+                    color: hex(color),
+                    intensity: 4.0 * PI * luminance * width * height * gain,
+                    range: range + setback,
+                    radius: width.min(height) / 2.0,
+                    outer_angle: 1.5,
+                    inner_angle: 0.0,
+                    shadow_maps_enabled: false,
+                    ..default()
+                },
+                transform.with_translation(at - transform.forward() * setback),
+            ));
+        }
+    }
     commands.insert_resource(colliders);
 }
 
@@ -488,7 +545,7 @@ impl Doors<'_> {
         kit.cuboid_in(door, [1.85, 0.16, 0.28], self.cream, [0.0, 2.9, 0.06]);
         kit.cuboid_in(door, [1.48, 0.035, 0.35], self.brass, [0.0, 0.025, 0.14]);
         kit.cuboid_in(door, [0.13, 0.3, 0.04], self.brass, [0.48, 1.2, 0.25]);
-        let knob = kit.meshes.add(Sphere::new(0.065).mesh().uv(20, 14));
+        let knob = kit.meshes.add(facet(Sphere::new(0.065).mesh().uv(6, 4)));
         kit.spawn(knob, self.brass, Transform::from_xyz(0.48, 1.24, 0.32), Some(door));
         let sign_image = kit.image(textures::label(name), false);
         let sign_material = kit.materials.add(StandardMaterial {
@@ -525,7 +582,7 @@ fn spawn_lamp(kit: &mut Kit) {
         cull_mode: None,
         ..default()
     });
-    let shade_mesh = kit.mesh(meshes::frustum(0.19, 0.33, 0.42, 64, true));
+    let shade_mesh = kit.mesh(meshes::frustum(0.19, 0.33, 0.42, 9, true));
     let shade = kit.spawn(shade_mesh, &shade_material, Transform::from_translation(center), None);
     // The fabric transmits light; an opaque shadow from the shade would hide it.
     kit.no_shadow(shade);
@@ -541,7 +598,7 @@ fn spawn_lamp(kit: &mut Kit) {
 
     let piping = kit.mat("#b9a683", 0.9, 0.0);
     for (radius, y) in [(0.19f32, 1.79f32), (0.33, 1.37)] {
-        let torus = kit.meshes.add(Torus { minor_radius: 0.007, major_radius: radius }.mesh().minor_resolution(8).major_resolution(64));
+        let torus = kit.meshes.add(Torus { minor_radius: 0.007, major_radius: radius }.mesh().minor_resolution(4).major_resolution(9));
         let ring = kit.spawn(torus, &piping, Transform::from_xyz(center.x, y, center.z), None);
         kit.no_shadow(ring);
     }
@@ -609,7 +666,7 @@ fn spawn_pendant(kit: &mut Kit, brass: &Handle<StandardMaterial>, dark_wood: &Ha
         clearcoat_perceptual_roughness: 0.3,
         ..default()
     });
-    let globe = kit.meshes.add(Sphere::new(0.28).mesh().uv(40, 24));
+    let globe = kit.meshes.add(facet(Sphere::new(0.28).mesh().uv(10, 7)));
     let pendant = kit.spawn(globe, &opal, Transform::from_xyz(0.0, 3.08, -0.8), None);
     kit.no_shadow(pendant);
     kit.commands.spawn((

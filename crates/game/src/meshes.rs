@@ -173,3 +173,55 @@ pub fn sphere_segment(radius: f32, width_segments: u32, height_segments: u32, th
     }
     data
 }
+
+/// A box with rounded edges and corners, for cushions. Faces that point along
+/// the box's thinnest axis puff out by up to `bulge` at their centre, the way
+/// stuffed fabric does. Normals are smooth, so it reads as soft.
+pub fn cushion(size: Vec3, radius: f32, bulge: f32, segments: u32) -> MeshData {
+    let mut data = MeshData::default();
+    let half = size / 2.0;
+    let radius = radius.min(half.min_element());
+    let inner = half - Vec3::splat(radius);
+    // The axis the cushion is thin along, and the two it spreads across.
+    let thin = (0..3).min_by(|&a, &b| half[a].total_cmp(&half[b])).unwrap();
+    let (across, along) = ((thin + 1) % 3, (thin + 2) % 3);
+    // (u, v, normal) per face, matching `cuboid`'s orientation.
+    let faces = [
+        (Vec3::X, Vec3::NEG_Y, Vec3::Z),
+        (Vec3::NEG_X, Vec3::NEG_Y, Vec3::NEG_Z),
+        (Vec3::NEG_Z, Vec3::NEG_Y, Vec3::X),
+        (Vec3::Z, Vec3::NEG_Y, Vec3::NEG_X),
+        (Vec3::X, Vec3::Z, Vec3::Y),
+        (Vec3::X, Vec3::NEG_Z, Vec3::NEG_Y),
+    ];
+    let stride = segments + 1;
+    for (u, v, normal) in faces {
+        let first = data.positions.len() as u32;
+        for j in 0..=segments {
+            for i in 0..=segments {
+                let (s, t) = (i as f32 / segments as f32, j as f32 / segments as f32);
+                let on_box = normal * half + u * half * (2.0 * s - 1.0) + v * half * (2.0 * t - 1.0);
+                let core = on_box.clamp(-inner, inner);
+                let mut n = (on_box - core).try_normalize().unwrap_or(normal);
+                let mut position = core + n * radius;
+                // Puff the broad faces out: height h = bulge·(1 − a²)(1 − b²).
+                let a = (position[across] / half[across]).clamp(-1.0, 1.0);
+                let b = (position[along] / half[along]).clamp(-1.0, 1.0);
+                let puff = bulge * (1.0 - a * a) * (1.0 - b * b);
+                position[thin] += position[thin].signum() * puff;
+                let facing = n[thin].abs();
+                n[across] += facing * bulge * 2.0 * a / half[across] * (1.0 - b * b);
+                n[along] += facing * bulge * 2.0 * b / half[along] * (1.0 - a * a);
+                data.vertex(position, n.normalize(), Vec2::new(s, t));
+            }
+        }
+        for j in 0..segments {
+            for i in 0..segments {
+                let a = first + j * stride + i;
+                let (b, c, d) = (a + 1, a + stride + 1, a + stride);
+                data.indices.extend([a, d, c, a, c, b]);
+            }
+        }
+    }
+    data
+}

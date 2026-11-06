@@ -1,4 +1,4 @@
-# The House
+# Dariush Ghassemieh — Entrance Hall
 
 A static, walkable 3D entrance hall, rendered with [Bevy](https://bevy.org) compiled to WebAssembly. Frosted windows, a wind-driven snowstorm, snow-covered evergreens, diffused warm lighting, marked doors, interactive furnishings, and optional wind ambience.
 
@@ -30,11 +30,11 @@ Firebase Hosting serves `dist/`.
 ## Explore
 
 - Click **Step inside** to begin.
-- Use **WASD** or **arrow keys** to walk and the mouse to look. If mouse capture is unavailable, drag to look.
+- Use **WASD** or **arrow keys** to walk (hold **Shift** to walk faster) and the mouse to look. If mouse capture is unavailable, drag to look.
 - Face a nearby object and press **E** or click to interact. Try the table lamp or welcome note.
 - Press **Esc** to pause. **How to explore** includes a reset button.
 - On touchscreens, drag to look and use the on-screen movement and interaction buttons.
-- Use **Sound off / on** to toggle ambient winter wind.
+- Use **Sound off / on** to toggle ambient winter wind and footsteps.
 
 Only the entrance hall is built. The labeled doors identify future rooms and display a message when used.
 

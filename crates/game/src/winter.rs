@@ -54,7 +54,7 @@ pub fn spawn(kit: &mut Kit) {
         double_sided: true,
         cull_mode: None,
         perceptual_roughness: 1.0,
-        emissive: glow("#9aaebc", 0.2),
+        emissive: glow("#5d6f8f", 0.05),
         emissive_texture: Some(needles),
         emissive_exposure_weight: 1.0,
         ..default()
@@ -64,7 +64,7 @@ pub fn spawn(kit: &mut Kit) {
     const TREES: usize = 30;
     const TIERS: usize = 14;
     const ARMS: usize = 7;
-    let trunk = kit.mesh(meshes::frustum(0.08, 0.2, 1.0, 10, false));
+    let trunk = kit.mesh(meshes::frustum(0.08, 0.2, 1.0, 5, false));
     let mut branches = Vec::with_capacity(TREES * TIERS * ARMS);
     let mut fronds = Vec::with_capacity(TREES * TIERS * ARMS * 2);
     for tree in 0..TREES {
@@ -123,7 +123,7 @@ pub fn spawn(kit: &mut Kit) {
     let ground_material = kit.materials.add(StandardMaterial {
         base_color_texture: Some(snow_texture.clone()),
         perceptual_roughness: 1.0,
-        emissive: glow("#a5b7c5", 0.35),
+        emissive: glow("#7f93b8", 0.12),
         emissive_texture: Some(snow_texture),
         emissive_exposure_weight: 1.0,
         uv_transform: Affine2::from_scale(Vec2::new(12.0, 16.0)),
@@ -137,11 +137,11 @@ pub fn spawn(kit: &mut Kit) {
     let drift_material = kit.materials.add(StandardMaterial {
         base_color: hex("#dce5e7"),
         perceptual_roughness: 1.0,
-        emissive: glow("#a5b7c5", 0.35),
+        emissive: glow("#7f93b8", 0.12),
         emissive_exposure_weight: 1.0,
         ..default()
     });
-    let drift_mesh = kit.meshes.add(Sphere::new(1.0).mesh().uv(20, 12));
+    let drift_mesh = kit.meshes.add(crate::hall::facet(Sphere::new(1.0).mesh().uv(7, 5)));
     for _ in 0..16 {
         let at = Vec3::new(-7.0 - rng.f32() * 22.0, -0.12, -15.0 + rng.f32() * 30.0);
         let scale = Vec3::new(1.2 + rng.f32() * 2.0, 0.2 + rng.f32() * 0.25, 1.5 + rng.f32() * 3.0);
@@ -151,7 +151,7 @@ pub fn spawn(kit: &mut Kit) {
 
     let flake = kit.image(textures::flake(), false);
     let flake_material = kit.materials.add(StandardMaterial {
-        base_color: unlit("#eff7ff", 0.82),
+        base_color: unlit("#c9d6ee", 0.7),
         base_color_texture: Some(flake),
         unlit: true,
         alpha_mode: AlphaMode::Blend,

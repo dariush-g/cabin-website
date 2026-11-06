@@ -9,6 +9,13 @@ const START: Vec3 = Vec3::new(0.8, 1.65, 3.8);
 const START_YAW: f32 = 0.11;
 const START_PITCH: f32 = -0.035;
 const WALK_SPEED: f32 = 2.0;
+/// Holding Shift: a brisk walk, not a run.
+const HURRY_SPEED: f32 = 3.1;
+/// How quickly speed eases toward the target, per second.
+const ACCELERATION: f32 = 9.0;
+/// Metres per footstep (an unhurried two steps a second at walking speed);
+/// the head dips and rises once per step.
+const STRIDE: f32 = 1.0;
 const REACH: f32 = 2.8;
 
 #[derive(Resource)]
@@ -17,24 +24,39 @@ pub struct Visitor {
     pitch: f32,
     active: bool,
     moves: [bool; 4],
+    hurrying: bool,
     wants_to_interact: bool,
     target: Option<Entity>,
+    /// Eye position without head bob; collisions use this.
+    eye: Vec3,
+    /// Current walking velocity on the floor plane (x, z).
+    velocity: Vec2,
+    /// Advances by π per footstep.
+    stride_phase: f32,
+    /// 0 standing still, 1 walking: fades the bob in and out.
+    bob_weight: f32,
+    bob: bool,
 }
 
-impl Default for Visitor {
-    fn default() -> Self {
+impl Visitor {
+    /// `bob` is off for visitors who prefer reduced motion.
+    pub fn new(bob: bool) -> Self {
         Self {
             yaw: START_YAW,
             pitch: START_PITCH,
             active: false,
             moves: [false; 4],
+            hurrying: false,
             wants_to_interact: false,
             target: None,
+            eye: START,
+            velocity: Vec2::ZERO,
+            stride_phase: 0.0,
+            bob_weight: 0.0,
+            bob,
         }
     }
-}
 
-impl Visitor {
     fn held(&self, direction: Move) -> f32 {
         let index = match direction {
             Move::Forward => 0,
@@ -65,17 +87,22 @@ fn view_rotation(yaw: f32, pitch: f32) -> Quat {
 }
 
 /// Applies input the browser forwarded since the last frame.
-pub fn receive_commands(mut visitor: ResMut<Visitor>, mut camera: Single<&mut Transform, With<Camera3d>>) {
+pub fn receive_commands(mut visitor: ResMut<Visitor>) {
     for command in bridge::drain() {
         match command {
             Command::Active(active) => {
                 visitor.active = active;
                 if !active {
                     visitor.moves = [false; 4];
+                    visitor.hurrying = false;
                 }
             }
             Command::Move(direction, pressed) => visitor.set(direction, pressed),
-            Command::ClearMoves => visitor.moves = [false; 4],
+            Command::ClearMoves => {
+                visitor.moves = [false; 4];
+                visitor.hurrying = false;
+            }
+            Command::Hurry(hurrying) => visitor.hurrying = hurrying,
             Command::Look { yaw, pitch } => {
                 visitor.yaw += yaw;
                 visitor.pitch = (visitor.pitch + pitch).clamp(-1.25, 1.25);
@@ -84,18 +111,17 @@ pub fn receive_commands(mut visitor: ResMut<Visitor>, mut camera: Single<&mut Tr
             Command::Reset => {
                 visitor.yaw = START_YAW;
                 visitor.pitch = START_PITCH;
-                camera.translation = START;
+                visitor.eye = START;
+                visitor.velocity = Vec2::ZERO;
             }
         }
     }
 }
 
-/// Walks relative to the view direction, sliding along furniture and walls.
-pub fn walk(time: Res<Time>, visitor: Res<Visitor>, colliders: Res<Colliders>, mut camera: Single<&mut Transform, With<Camera3d>>) {
-    camera.rotation = view_rotation(visitor.yaw, visitor.pitch);
-    if !visitor.active {
-        return;
-    }
+/// Walks relative to the view direction, sliding along furniture and walls,
+/// with a gentle head bob while moving.
+pub fn walk(time: Res<Time>, mut visitor: ResMut<Visitor>, colliders: Res<Colliders>, mut camera: Single<&mut Transform, With<Camera3d>>) {
+    let dt = time.delta_secs().min(0.05);
     let mut forward = visitor.held(Move::Forward) - visitor.held(Move::Backward);
     let mut side = visitor.held(Move::Right) - visitor.held(Move::Left);
     let length = forward.hypot(side);
@@ -103,18 +129,55 @@ pub fn walk(time: Res<Time>, visitor: Res<Visitor>, colliders: Res<Colliders>, m
         forward /= length;
         side /= length;
     }
-    let step = time.delta_secs().min(0.05) * WALK_SPEED;
+    let speed = if visitor.hurrying { HURRY_SPEED } else { WALK_SPEED };
     let (sin, cos) = visitor.yaw.sin_cos();
-    let dx = (-sin * forward + cos * side) * step;
-    let dz = (-cos * forward - sin * side) * step;
-    let position = camera.translation;
-    if colliders.allows(position.x + dx, position.z) {
-        camera.translation.x += dx;
+    let wanted = if visitor.active {
+        Vec2::new(-sin * forward + cos * side, -cos * forward - sin * side) * speed
+    } else {
+        Vec2::ZERO
+    };
+    visitor.velocity = visitor.velocity.lerp(wanted, 1.0 - (-ACCELERATION * dt).exp());
+
+    // Slide along obstacles one axis at a time; only real movement counts
+    // toward footsteps, so walking into a wall doesn't bob.
+    let before = visitor.eye;
+    let step = visitor.velocity * dt;
+    if colliders.allows(visitor.eye.x + step.x, visitor.eye.z) {
+        visitor.eye.x += step.x;
+    } else {
+        visitor.velocity.x = 0.0;
     }
-    let position = camera.translation;
-    if colliders.allows(position.x, position.z + dz) {
-        camera.translation.z += dz;
+    if colliders.allows(visitor.eye.x, visitor.eye.z + step.y) {
+        visitor.eye.z += step.y;
+    } else {
+        visitor.velocity.y = 0.0;
     }
+    let moved = (visitor.eye - before).length();
+    let footfalls_before = footfalls(visitor.stride_phase);
+    visitor.stride_phase += moved / STRIDE * std::f32::consts::PI;
+    let speed_ratio = moved / dt.max(1e-4) / WALK_SPEED;
+    if footfalls(visitor.stride_phase) != footfalls_before {
+        bridge::step(speed_ratio.clamp(0.6, 1.4), hall::on_rug(visitor.eye.x, visitor.eye.z));
+    }
+    // Full bob at walking pace, slightly more when hurrying.
+    let pace = speed_ratio.min(1.2);
+    let weight_target = if visitor.bob { pace } else { 0.0 };
+    visitor.bob_weight += (weight_target - visitor.bob_weight) * (1.0 - (-6.0 * dt).exp());
+
+    // A gentle dip at each footfall and a faint sway toward the planted foot.
+    let phase = visitor.stride_phase;
+    let weight = visitor.bob_weight;
+    let rise = -0.012 * weight * (1.0 - (2.0 * phase).cos()) / 2.0;
+    let sway = 0.005 * weight * phase.sin();
+    let right = Vec3::new(cos, 0.0, -sin);
+    camera.translation = visitor.eye + Vec3::Y * rise + right * sway;
+    camera.rotation = view_rotation(visitor.yaw, visitor.pitch);
+}
+
+/// Footfalls taken by a given stride phase. A foot lands at the bottom of
+/// each head dip, a quarter of a cycle into every step.
+fn footfalls(phase: f32) -> i32 {
+    ((phase - std::f32::consts::FRAC_PI_2) / std::f32::consts::PI).floor() as i32
 }
 
 /// Distance along the ray to a box of half-size `half` in `to_local` space.
