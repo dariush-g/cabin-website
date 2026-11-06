@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["crates/game"]
+
+# Bevy is very slow unoptimized; optimize dependencies even in dev builds.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = "z"
+lto = "thin"
+codegen-units = 1
+# Symbol names would otherwise make up about half the shipped wasm.
+strip = true

@@ -1,0 +1,72 @@
+:root{color-scheme:dark;font-family:'DM Sans',sans-serif;color:#ede8d9;background:#202721}
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden}
+button,a{-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer;color:inherit}
+button:focus-visible,a:focus-visible{outline:2px solid #edc38b;outline-offset:6px}
+#house,canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 54% 48%,transparent 35%,#10171465 100%),linear-gradient(#10171455,transparent 20%,transparent 75%,#101714b0);z-index:1}
+.masthead{position:fixed;top:0;left:0;right:0;padding:30px 38px;display:flex;align-items:center;justify-content:space-between;z-index:3;font-size:11px;letter-spacing:2.5px}
+.masthead a{color:inherit;text-decoration:none;display:flex;gap:13px;align-items:center}
+.house-icon{font-size:28px;line-height:20px}
+.location{font-size:10px;color:#dfdfcdab}
+.location span{margin:0 13px;color:#a6ae9d66}
+#sound,#help{border:0;background:none;font-size:11px;letter-spacing:.5px}
+#sound span{margin-left:12px;color:#c1c5b7}
+.room-caption{position:fixed;top:21%;left:6%;z-index:2;pointer-events:none;transition:opacity .6s,transform .6s}
+.eyebrow{font-size:9px;letter-spacing:3px;color:#d9ccac}
+h1{font-family:'Libre Caslon Display',Georgia,serif;font-size:clamp(42px,5.2vw,78px);font-weight:400;line-height:1.02;letter-spacing:-1px;margin:22px 0}
+.room-caption p{font-size:12px;color:#d7d9c7bd}
+.welcome{position:fixed;z-index:3;left:6%;bottom:18%;display:flex;align-items:flex-start;flex-direction:column;transition:opacity .4s}
+.small-rule{width:35px;height:1px;background:#c0b08b}
+.welcome p{font-family:Georgia,serif;font-style:italic;font-size:15px;color:#d5d1bf}
+#enter{border:1px solid #e4d3aa88;background:#d7c09a;color:#242b23;padding:15px 26px;min-width:165px;margin:10px 0 18px;letter-spacing:.7px;font-size:12px;transition:background .2s}
+#enter:hover{background:#ead4af}
+#enter:disabled{opacity:.6;cursor:wait}
+.start-hint{font-size:9px;color:#c5c8b6;letter-spacing:.5px}
+footer{position:fixed;bottom:0;left:0;right:0;z-index:3;padding:25px 38px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#c2c7b7}
+.weather{display:flex;align-items:center;gap:12px}
+.weather i{width:6px;height:6px;border-radius:50%;background:#b3baa2}
+.weather span{font-size:8px;letter-spacing:2px;margin-left:4px}
+#controls-label{font-family:Georgia,serif;font-style:italic;font-size:12px}
+#help span{display:inline-flex;align-items:center;justify-content:center;border:1px solid #c2c7b755;border-radius:50%;width:19px;height:19px;margin-left:10px}
+#reticle{display:none;position:fixed;z-index:2;left:50%;top:50%;width:4px;height:4px;border-radius:50%;background:#eee8d8b0;box-shadow:0 0 0 4px #ffffff0a;pointer-events:none}
+#interaction{position:fixed;top:calc(50% + 22px);left:50%;transform:translateX(-50%);font-size:11px;z-index:3;background:#1a211cba;padding:10px 15px;white-space:nowrap;border-radius:3px;display:none;pointer-events:none}
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(12px);max-width:min(450px,88vw);text-align:center;background:#202920ed;border:1px solid #a3a88c55;padding:16px 24px;font-size:12px;line-height:1.7;z-index:5;opacity:0;transition:.3s;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#help-panel{position:fixed;right:30px;bottom:80px;width:320px;max-width:calc(100vw - 40px);padding:25px;background:#1e2822f5;border:1px solid #8a96816b;z-index:6;font-size:12px;line-height:1.8}
+#help-panel h2{font:26px 'Libre Caslon Display',Georgia,serif;margin:0 0 20px}
+#help-panel p{color:#c5c8b8}
+#help-panel b{display:block;color:#e5dfcb;font-weight:500}
+#reset{padding:10px 14px;background:transparent;border:1px solid #8a9681}
+body.exploring .room-caption,body.exploring .welcome{opacity:0;pointer-events:none;transform:translateY(-8px)}
+body.exploring #reticle{display:block}
+#touch-controls{display:none;position:fixed;bottom:85px;left:24px;right:24px;z-index:4;align-items:end;justify-content:space-between;pointer-events:none}
+.dpad{display:grid;grid-template-columns:repeat(3,43px);gap:5px}
+.dpad button,#touch-use{pointer-events:auto;background:#202920aa;border:1px solid #a5ac8e66;border-radius:5px;touch-action:none;height:43px}
+.dpad button:first-child{grid-column:2}
+.dpad button:nth-child(2){grid-column:1;grid-row:2}
+.dpad button:nth-child(3){grid-column:2;grid-row:2}
+.dpad button:nth-child(4){grid-column:3;grid-row:2}
+#touch-use{padding:0 18px}
+#error{position:fixed;inset:0;z-index:10;background:#202721;padding:20vh 10vw}
+#error h2{font:40px Georgia,serif}
+#error p{max-width:420px;line-height:1.7}
+@media(pointer:coarse){body.exploring #touch-controls{display:flex}
+.start-hint{font-size:0}
+.start-hint:after{content:'Drag to look · On-screen arrows to walk';font-size:10px}
+}
+@media(max-width:650px){.masthead{padding:24px 22px}
+.location{display:none}
+.room-caption{top:19%;left:8%}
+h1{font-size:52px}
+.welcome{left:8%;bottom:21%}
+footer{padding:22px;font-size:9px}
+#controls-label{display:none}
+.weather{gap:8px}
+.weather span{font-size:7px}
+#help{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}
+}
+

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#202721">
+  <meta name="description" content="Step inside a quiet house during a snowstorm. A walkable, interactive 3D entrance hall.">
+  <title>The House — Entrance Hall</title>
+  <link rel="icon" href="/house.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap">
+</head>
+<body>
+  <main id="house" aria-label="Interactive 3D entrance hall"><canvas id="house-canvas" tabindex="-1"></canvas></main>
+  <div class="vignette" aria-hidden="true"></div>
+  <header class="masthead">
+    <a href="./" aria-label="The House, entrance"><span class="house-icon">⌂</span> THE HOUSE</a>
+    <span class="location">01 <span> / </span> ENTRANCE HALL</span>
+    <button id="sound" aria-pressed="false">Sound off <span>♫</span></button>
+  </header>
+  <div class="room-caption">
+    <span class="eyebrow">MAKE YOURSELF AT HOME</span>
+    <h1>A little shelter<br>from the outside.</h1>
+    <p>The afternoon is yours. Take a look around.</p>
+  </div>
+  <section id="welcome" class="welcome" aria-label="Enter the house">
+    <span class="small-rule"></span>
+    <p>Some places ask you to slow down.</p>
+    <button id="enter" disabled>Preparing the house…</button>
+    <span class="start-hint">W A S D to walk · Mouse to look · E to interact</span>
+  </section>
+  <div id="reticle" aria-hidden="true"></div>
+  <div id="interaction" role="status"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <footer>
+    <span class="weather"><i></i> −6° <span>SNOWSTORM</span></span>
+    <span id="controls-label">An unhurried place to explore</span>
+    <button id="help" aria-expanded="false">How to explore <span>?</span></button>
+  </footer>
+  <aside id="help-panel" hidden>
+    <h2>Make yourself at home</h2>
+    <p><b>W A S D / arrow keys</b> Walk around</p>
+    <p><b>Mouse</b> Look around</p>
+    <p><b>E / click</b> Use the object you’re facing</p>
+    <p><b>Esc</b> Release the mouse / pause</p>
+    <p>On touchscreens, drag to look and use the arrows to walk. Doors mark rooms we’ll add later.</p>
+    <button id="reset">Back to the entrance</button>
+  </aside>
+  <div id="touch-controls">
+    <div class="dpad">
+      <button data-move="forward" aria-label="Walk forward">↑</button>
+      <button data-move="left" aria-label="Walk left">←</button>
+      <button data-move="backward" aria-label="Walk backward">↓</button>
+      <button data-move="right" aria-label="Walk right">→</button>
+    </div>
+    <button id="touch-use">Interact</button>
+  </div>
+  <div id="error" hidden>
+    <h2>The house couldn’t load.</h2>
+    <p>This experience needs a browser with WebGL 2 enabled. Try refreshing or using another browser.</p>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

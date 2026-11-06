@@ -1,0 +1,195 @@
+//! The visitor: looking, walking, and using what they face.
+
+use bevy::prelude::*;
+
+use crate::bridge::{self, Command, Move};
+use crate::hall::{self, Action, Colliders, Lamp, LampLight, Target};
+
+const START: Vec3 = Vec3::new(0.8, 1.65, 3.8);
+const START_YAW: f32 = 0.11;
+const START_PITCH: f32 = -0.035;
+const WALK_SPEED: f32 = 2.0;
+const REACH: f32 = 2.8;
+
+#[derive(Resource)]
+pub struct Visitor {
+    yaw: f32,
+    pitch: f32,
+    active: bool,
+    moves: [bool; 4],
+    wants_to_interact: bool,
+    target: Option<Entity>,
+}
+
+impl Default for Visitor {
+    fn default() -> Self {
+        Self {
+            yaw: START_YAW,
+            pitch: START_PITCH,
+            active: false,
+            moves: [false; 4],
+            wants_to_interact: false,
+            target: None,
+        }
+    }
+}
+
+impl Visitor {
+    fn held(&self, direction: Move) -> f32 {
+        let index = match direction {
+            Move::Forward => 0,
+            Move::Backward => 1,
+            Move::Left => 2,
+            Move::Right => 3,
+        };
+        if self.moves[index] { 1.0 } else { 0.0 }
+    }
+
+    fn set(&mut self, direction: Move, pressed: bool) {
+        let index = match direction {
+            Move::Forward => 0,
+            Move::Backward => 1,
+            Move::Left => 2,
+            Move::Right => 3,
+        };
+        self.moves[index] = pressed;
+    }
+}
+
+pub fn camera_transform() -> Transform {
+    Transform::from_translation(START).with_rotation(view_rotation(START_YAW, START_PITCH))
+}
+
+fn view_rotation(yaw: f32, pitch: f32) -> Quat {
+    Quat::from_euler(EulerRot::YXZ, yaw, pitch, 0.0)
+}
+
+/// Applies input the browser forwarded since the last frame.
+pub fn receive_commands(mut visitor: ResMut<Visitor>, mut camera: Single<&mut Transform, With<Camera3d>>) {
+    for command in bridge::drain() {
+        match command {
+            Command::Active(active) => {
+                visitor.active = active;
+                if !active {
+                    visitor.moves = [false; 4];
+                }
+            }
+            Command::Move(direction, pressed) => visitor.set(direction, pressed),
+            Command::ClearMoves => visitor.moves = [false; 4],
+            Command::Look { yaw, pitch } => {
+                visitor.yaw += yaw;
+                visitor.pitch = (visitor.pitch + pitch).clamp(-1.25, 1.25);
+            }
+            Command::Interact => visitor.wants_to_interact = true,
+            Command::Reset => {
+                visitor.yaw = START_YAW;
+                visitor.pitch = START_PITCH;
+                camera.translation = START;
+            }
+        }
+    }
+}
+
+/// Walks relative to the view direction, sliding along furniture and walls.
+pub fn walk(time: Res<Time>, visitor: Res<Visitor>, colliders: Res<Colliders>, mut camera: Single<&mut Transform, With<Camera3d>>) {
+    camera.rotation = view_rotation(visitor.yaw, visitor.pitch);
+    if !visitor.active {
+        return;
+    }
+    let mut forward = visitor.held(Move::Forward) - visitor.held(Move::Backward);
+    let mut side = visitor.held(Move::Right) - visitor.held(Move::Left);
+    let length = forward.hypot(side);
+    if length > 0.0 {
+        forward /= length;
+        side /= length;
+    }
+    let step = time.delta_secs().min(0.05) * WALK_SPEED;
+    let (sin, cos) = visitor.yaw.sin_cos();
+    let dx = (-sin * forward + cos * side) * step;
+    let dz = (-cos * forward - sin * side) * step;
+    let position = camera.translation;
+    if colliders.allows(position.x + dx, position.z) {
+        camera.translation.x += dx;
+    }
+    let position = camera.translation;
+    if colliders.allows(position.x, position.z + dz) {
+        camera.translation.z += dz;
+    }
+}
+
+/// Distance along the ray to a box of half-size `half` in `to_local` space.
+fn ray_box(origin: Vec3, direction: Vec3, to_local: Mat4, half: Vec3) -> Option<f32> {
+    let o = to_local.transform_point3(origin);
+    let d = to_local.transform_vector3(direction);
+    let (mut near, mut far) = (f32::NEG_INFINITY, f32::INFINITY);
+    for axis in 0..3 {
+        if d[axis].abs() < 1e-8 {
+            if o[axis].abs() > half[axis] {
+                return None;
+            }
+            continue;
+        }
+        let a = (-half[axis] - o[axis]) / d[axis];
+        let b = (half[axis] - o[axis]) / d[axis];
+        near = near.max(a.min(b));
+        far = far.min(a.max(b));
+    }
+    // The direction is transformed without renormalizing, so `near` is
+    // already measured in world units.
+    (near <= far && far >= 0.0).then_some(near.max(0.0))
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn aim_and_interact(
+    mut visitor: ResMut<Visitor>,
+    camera: Single<&GlobalTransform, With<Camera3d>>,
+    targets: Query<(Entity, &GlobalTransform, &Target)>,
+    mut lamp: ResMut<Lamp>,
+    mut lights: Query<(&LampLight, Option<&mut PointLight>, Option<&mut SpotLight>, Option<&mut RectLight>)>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut visibility: Query<&mut Visibility>,
+) {
+    let wants_to_interact = std::mem::take(&mut visitor.wants_to_interact);
+    let faced = if visitor.active {
+        let origin = camera.translation();
+        let direction = camera.forward().as_vec3();
+        targets
+            .iter()
+            .filter_map(|(entity, transform, target)| {
+                let to_local = transform.affine().inverse().into();
+                ray_box(origin, direction, to_local, target.half)
+                    .filter(|distance| *distance <= REACH)
+                    .map(|distance| (entity, distance))
+            })
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(entity, _)| entity)
+    } else {
+        None
+    };
+    if faced != visitor.target {
+        visitor.target = faced;
+        let label = faced.and_then(|entity| targets.get(entity).ok()).map(|(_, _, t)| t.label.as_str());
+        bridge::target(label);
+    }
+    let Some((_, _, target)) = faced.filter(|_| wants_to_interact).and_then(|e| targets.get(e).ok()) else {
+        return;
+    };
+    match target.action {
+        Action::Door(name) => bridge::toast(&format!(
+            "{name} — this room isn’t open yet. For now, make yourself at home in the entrance hall."
+        )),
+        Action::Note => bridge::toast("“Welcome home. Leave the weather outside. There’s no hurry here.”"),
+        Action::Lamp => {
+            let message = hall::toggle_lamp(&mut lamp, &mut lights, &mut materials, &mut visibility);
+            bridge::toast(message);
+        }
+    }
+}
+
+/// Tells the page the hall is ready once a few frames have rendered.
+pub fn announce_ready(mut frames: Local<u32>) {
+    *frames += 1;
+    if *frames == 3 {
+        bridge::ready();
+    }
+}
