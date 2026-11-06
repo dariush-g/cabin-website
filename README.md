@@ -1,6 +1,5 @@
-# Dariush Ghassemieh — Entrance Hall
 
-A static, walkable 3D entrance hall, rendered with [Bevy](https://bevy.org) compiled to WebAssembly. Frosted windows, a wind-driven snowstorm, snow-covered evergreens, diffused warm lighting, marked doors, interactive furnishings, and optional wind ambience.
+A static, walkable 3D area, rendered with [Bevy](https://bevy.org) compiled to WebAssembly. Frosted windows, a wind-driven snowstorm, snow-covered evergreens, diffused warm lighting, marked doors, interactive furnishings, and optional wind ambience.
 
 ## Requirements
 
