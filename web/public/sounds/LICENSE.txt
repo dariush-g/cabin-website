@@ -1,0 +1,5 @@
+Footstep sounds from "Impact Sounds" by Kenney (www.kenney.nl), released
+under Creative Commons Zero (CC0):
+http://creativecommons.org/publicdomain/zero/1.0/
+
+Converted from Ogg Vorbis to mono 22.05 kHz WAV.

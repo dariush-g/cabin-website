@@ -67,3 +67,11 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Rust / build output
+target/
+dist/
+web/src/wasm/
+
+# Local Chrome profile from headless browser testing
+profile/
