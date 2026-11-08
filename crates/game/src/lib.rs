@@ -104,7 +104,7 @@ fn spawn_camera(mut commands: Commands) {
         // Snowy night swallows the forest a few trees out.
         DistanceFog {
             color: hall::hex(SKY),
-            falloff: FogFalloff::Linear { start: 7.0, end: 30.0 },
+            falloff: FogFalloff::Linear { start: 12.0, end: 34.0 },
             ..default()
         },
         // Just enough cool night light to find the corners; Bevy's ambient

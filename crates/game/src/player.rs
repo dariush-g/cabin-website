@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::bridge::{self, Command, Move};
 use crate::hall::{self, Action, Colliders, Lamp, LampLight, Target};
 
-const START: Vec3 = Vec3::new(0.8, 1.65, 3.8);
+const START: Vec3 = Vec3::new(0.8, 1.65, 6.6);
 const START_YAW: f32 = 0.11;
 const START_PITCH: f32 = -0.035;
 const WALK_SPEED: f32 = 2.0;

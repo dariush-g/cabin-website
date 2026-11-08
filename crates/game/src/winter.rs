@@ -68,7 +68,7 @@ pub fn spawn(kit: &mut Kit) {
     let mut branches = Vec::with_capacity(TREES * TIERS * ARMS);
     let mut fronds = Vec::with_capacity(TREES * TIERS * ARMS * 2);
     for tree in 0..TREES {
-        let x = if tree < 6 { -10.0 - rng.f32() * 5.0 } else { -17.0 - rng.f32() * 22.0 };
+        let x = if tree < 6 { -12.0 - rng.f32() * 5.0 } else { -19.0 - rng.f32() * 22.0 };
         let z = if tree < 6 { -9.0 + tree as f32 * 3.4 } else { -24.0 + rng.f32() * 48.0 };
         let height = 5.5 + rng.f32() * 5.0;
         let width = 1.5 + rng.f32() * 0.8;
@@ -130,7 +130,7 @@ pub fn spawn(kit: &mut Kit) {
         ..default()
     });
     let ground_mesh = kit.meshes.add(Plane3d::default().mesh().size(55.0, 70.0));
-    let ground = kit.spawn(ground_mesh, &ground_material, Transform::from_xyz(-32.0, -0.03, 0.0), None);
+    let ground = kit.spawn(ground_mesh, &ground_material, Transform::from_xyz(-34.0, -0.03, 0.0), None);
     kit.commands.entity(ground).insert(NotShadowCaster);
 
     // Drifts break up the flat ground at the forest edge.
@@ -143,7 +143,7 @@ pub fn spawn(kit: &mut Kit) {
     });
     let drift_mesh = kit.meshes.add(crate::hall::facet(Sphere::new(1.0).mesh().uv(7, 5)));
     for _ in 0..16 {
-        let at = Vec3::new(-7.0 - rng.f32() * 22.0, -0.12, -15.0 + rng.f32() * 30.0);
+        let at = Vec3::new(-10.5 - rng.f32() * 21.0, -0.12, -15.0 + rng.f32() * 30.0);
         let scale = Vec3::new(1.2 + rng.f32() * 2.0, 0.2 + rng.f32() * 0.25, 1.5 + rng.f32() * 3.0);
         let drift = kit.spawn(drift_mesh.clone(), &drift_material, Transform::from_translation(at).with_scale(scale), None);
         kit.commands.entity(drift).insert(NotShadowCaster);
@@ -160,9 +160,9 @@ pub fn spawn(kit: &mut Kit) {
     // Close, small flakes; a deep distant band; and a few large flakes
     // blowing right past the glass.
     let layers = [
-        (2400, -15.0, -5.3, 27.0, 11.0, 0.075, 1.2),
-        (3800, -43.0, -14.0, 62.0, 17.0, 0.1, 0.9),
-        (450, -12.0, -5.25, 22.0, 9.0, 0.14, 1.65),
+        (2400, -17.0, -7.3, 27.0, 11.0, 0.075, 1.2),
+        (3800, -45.0, -16.0, 62.0, 17.0, 0.1, 0.9),
+        (450, -14.0, -7.25, 22.0, 9.0, 0.14, 1.65),
     ];
     for (count, near, far, width, height, size, speed) in layers.into_iter().filter(|_| !crate::flag("nosnow")) {
         let mut flakes = Vec::with_capacity(count);
