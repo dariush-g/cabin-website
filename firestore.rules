@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Locked by default: nothing is readable or writable from the browser
+    // until a rule for a specific collection is added above this one.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

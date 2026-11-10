@@ -8,10 +8,14 @@
     "dev": "npm run wasm:dev && vite",
     "build": "npm run wasm:release && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && firebase deploy --only hosting"
+    "deploy": "npm run build && firebase deploy --only hosting",
+    "deploy:rules": "firebase deploy --only firestore"
   },
   "devDependencies": {
     "typescript": "^7.0.2",
     "vite": "^8.3.6"
+  },
+  "dependencies": {
+    "firebase": "^13.2.0"
   }
 }
