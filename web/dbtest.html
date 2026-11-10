@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Database test — The House</title>
+  <link rel="icon" href="/house.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Libre+Caslon+Display&display=swap">
+  <style>
+    :root{color-scheme:dark;font-family:'Libre Caslon Text',Georgia,serif;color:#ede8d9;background:#171d19}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:flex;justify-content:center;padding:9vh 20px 60px}
+    main{width:100%;max-width:520px}
+    .eyebrow{font-size:9px;letter-spacing:3px;color:#d9ccac}
+    h1{font:400 44px/1.05 'Libre Caslon Display',Georgia,serif;margin:18px 0 10px}
+    p{font-size:13px;line-height:1.7;color:#c5c8b8;margin:0 0 26px}
+    a{color:#d9ccac}
+    #status{font-size:12px;letter-spacing:.5px;padding:12px 15px;border:1px solid #8a96816b;background:#1e2822;margin-bottom:22px}
+    #status[data-state=ok]{border-color:#9fb58a88;color:#cfe0bb}
+    #status[data-state=fail]{border-color:#c98a7a88;color:#eab9aa}
+    form{display:flex;gap:10px;margin-bottom:30px}
+    input{flex:1;min-width:0;font:inherit;font-size:13px;color:inherit;background:#10171480;border:1px solid #8a96816b;padding:13px 14px}
+    input:focus-visible,button:focus-visible{outline:2px solid #edc38b;outline-offset:3px}
+    button{font:inherit;font-size:12px;letter-spacing:.7px;cursor:pointer;border:1px solid #e4d3aa88;background:#d7c09a;color:#242b23;padding:13px 22px}
+    button:hover{background:#ead4af}
+    button:disabled{opacity:.6;cursor:wait}
+    h2{font-size:9px;font-weight:400;letter-spacing:3px;color:#d9ccac;margin:0 0 12px}
+    ol{list-style:none;margin:0;padding:0;border-top:1px solid #8a968140}
+    li{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #8a968140;font-size:13px}
+    li span{overflow-wrap:anywhere}
+    li time{flex:none;font-size:10px;color:#a6ae9d;font-style:italic}
+    .empty{font-style:italic;color:#a6ae9d}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">THE HOUSE · DATABASE TEST</div>
+    <h1>Is anyone keeping notes?</h1>
+    <p>Leave a note. It is written to Firestore, read back, and listed below. Reload the page: if it is still here, the database works. <a href="./">Back to the house</a></p>
+    <div id="status" role="status">Connecting…</div>
+    <form id="form">
+      <input id="text" maxlength="200" placeholder="A short note" aria-label="Note" autocomplete="off" required>
+      <button id="write">Write</button>
+    </form>
+    <h2>LAST TEN NOTES</h2>
+    <ol id="entries"></ol>
+  </main>
+  <script type="module" src="/src/dbtest.ts"></script>
+</body>
+</html>
