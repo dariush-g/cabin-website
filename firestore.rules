@@ -14,6 +14,24 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
     }
 
+    // Anonymous click batches recorded by web/src/track.ts and drawn by
+    // /heatmap.html. Append-only from the browser; a batch holds at most 50
+    // clicks. Readable by anyone, since the heatmap page has no sign-in.
+    match /clicks/{batch} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['session', 'page', 'vw', 'vh', 'clicks', 'createdAt'])
+        && request.resource.data.session is string
+        && request.resource.data.session.size() <= 40
+        && request.resource.data.page is string
+        && request.resource.data.page.size() <= 100
+        && request.resource.data.vw is number
+        && request.resource.data.vh is number
+        && request.resource.data.clicks is list
+        && request.resource.data.clicks.size() > 0
+        && request.resource.data.clicks.size() <= 50
+        && request.resource.data.createdAt == request.time;
+    }
+
     // Locked by default: nothing else is readable or writable from the
     // browser until a rule for a specific collection is added above.
     match /{document=**} {
