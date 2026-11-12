@@ -12,6 +12,7 @@ use bevy::math::Affine2;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 
+use crate::cel::toon;
 use crate::hall::{Kit, glow, hex, unlit};
 use crate::meshes;
 use crate::textures::{self, Rng};
@@ -41,14 +42,14 @@ pub fn spawn(kit: &mut Kit) {
     // on every visit.
     let mut rng = Rng::new(941);
     let bark = kit.image(textures::bark(&mut rng), true);
-    let trunk_material = kit.materials.add(StandardMaterial {
+    let trunk_material = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(bark),
         perceptual_roughness: 1.0,
         uv_transform: Affine2::from_scale(Vec2::new(2.0, 3.0)),
         ..default()
-    });
+    }));
     let needles = kit.image(textures::needles(&mut rng), false);
-    let foliage_material = kit.materials.add(StandardMaterial {
+    let foliage_material = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(needles.clone()),
         alpha_mode: AlphaMode::Mask(0.32),
         double_sided: true,
@@ -58,7 +59,7 @@ pub fn spawn(kit: &mut Kit) {
         emissive_texture: Some(needles),
         emissive_exposure_weight: 1.0,
         ..default()
-    });
+    }));
     let twig_material = kit.mat("#5b5c50", 1.0, 0.0);
 
     const TREES: usize = 30;
@@ -120,7 +121,7 @@ pub fn spawn(kit: &mut Kit) {
     kit.commands.entity(frond_entity).insert(NotShadowCaster);
 
     let snow_texture = kit.image(textures::snow_ground(&mut rng), true);
-    let ground_material = kit.materials.add(StandardMaterial {
+    let ground_material = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(snow_texture.clone()),
         perceptual_roughness: 1.0,
         emissive: glow("#7f93b8", 0.12),
@@ -128,19 +129,19 @@ pub fn spawn(kit: &mut Kit) {
         emissive_exposure_weight: 1.0,
         uv_transform: Affine2::from_scale(Vec2::new(12.0, 16.0)),
         ..default()
-    });
+    }));
     let ground_mesh = kit.meshes.add(Plane3d::default().mesh().size(55.0, 70.0));
     let ground = kit.spawn(ground_mesh, &ground_material, Transform::from_xyz(-34.0, -0.03, 0.0), None);
     kit.commands.entity(ground).insert(NotShadowCaster);
 
     // Drifts break up the flat ground at the forest edge.
-    let drift_material = kit.materials.add(StandardMaterial {
+    let drift_material = kit.materials.add(toon(StandardMaterial {
         base_color: hex("#dce5e7"),
         perceptual_roughness: 1.0,
         emissive: glow("#7f93b8", 0.12),
         emissive_exposure_weight: 1.0,
         ..default()
-    });
+    }));
     let drift_mesh = kit.meshes.add(crate::hall::facet(Sphere::new(1.0).mesh().uv(7, 5)));
     for _ in 0..16 {
         let at = Vec3::new(-10.5 - rng.f32() * 21.0, -0.12, -15.0 + rng.f32() * 30.0);
@@ -150,13 +151,13 @@ pub fn spawn(kit: &mut Kit) {
     }
 
     let flake = kit.image(textures::flake(), false);
-    let flake_material = kit.materials.add(StandardMaterial {
+    let flake_material = kit.materials.add(toon(StandardMaterial {
         base_color: unlit("#c9d6ee", 0.7),
         base_color_texture: Some(flake),
         unlit: true,
         alpha_mode: AlphaMode::Blend,
         ..default()
-    });
+    }));
     // Close, small flakes; a deep distant band; and a few large flakes
     // blowing right past the glass.
     let layers = [

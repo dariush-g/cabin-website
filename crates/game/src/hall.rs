@@ -10,6 +10,7 @@ use bevy::light::NotShadowCaster;
 use bevy::math::Affine2;
 use bevy::prelude::*;
 
+use crate::cel::{Toon, toon};
 use crate::meshes::{self, MeshData};
 use crate::textures::{self, Rng};
 use crate::winter;
@@ -120,7 +121,7 @@ pub struct LampLight(pub f32);
 #[derive(Resource)]
 pub struct Lamp {
     pub on: bool,
-    pub shade: Handle<StandardMaterial>,
+    pub shade: Handle<Toon>,
     pub shade_glow: LinearRgba,
     pub bulb: Entity,
 }
@@ -129,18 +130,18 @@ pub struct Lamp {
 pub struct Kit<'a, 'w, 's> {
     pub commands: &'a mut Commands<'w, 's>,
     pub meshes: &'a mut Assets<Mesh>,
-    pub materials: &'a mut Assets<StandardMaterial>,
+    pub materials: &'a mut Assets<Toon>,
     pub images: &'a mut Assets<Image>,
 }
 
 impl Kit<'_, '_, '_> {
-    pub fn mat(&mut self, color: &str, roughness: f32, metallic: f32) -> Handle<StandardMaterial> {
-        self.materials.add(StandardMaterial {
+    pub fn mat(&mut self, color: &str, roughness: f32, metallic: f32) -> Handle<Toon> {
+        self.materials.add(toon(StandardMaterial {
             base_color: hex(color),
             perceptual_roughness: roughness,
             metallic,
             ..default()
-        })
+        }))
     }
 
     pub fn image(&mut self, canvas: textures::Canvas, repeat: bool) -> Handle<Image> {
@@ -154,7 +155,7 @@ impl Kit<'_, '_, '_> {
     pub fn spawn(
         &mut self,
         mesh: Handle<Mesh>,
-        material: &Handle<StandardMaterial>,
+        material: &Handle<Toon>,
         transform: Transform,
         parent: Option<Entity>,
     ) -> Entity {
@@ -167,22 +168,22 @@ impl Kit<'_, '_, '_> {
         entity.id()
     }
 
-    pub fn cuboid(&mut self, size: [f32; 3], material: &Handle<StandardMaterial>, at: [f32; 3]) -> Entity {
+    pub fn cuboid(&mut self, size: [f32; 3], material: &Handle<Toon>, at: [f32; 3]) -> Entity {
         let mesh = self.mesh(meshes::cuboid(size[0], size[1], size[2]));
         self.spawn(mesh, material, Transform::from_translation(at.into()), None)
     }
 
-    fn cuboid_in(&mut self, parent: Entity, size: [f32; 3], material: &Handle<StandardMaterial>, at: [f32; 3]) -> Entity {
+    fn cuboid_in(&mut self, parent: Entity, size: [f32; 3], material: &Handle<Toon>, at: [f32; 3]) -> Entity {
         let mesh = self.mesh(meshes::cuboid(size[0], size[1], size[2]));
         self.spawn(mesh, material, Transform::from_translation(at.into()), Some(parent))
     }
 
-    pub fn cylinder(&mut self, top: f32, bottom: f32, height: f32, material: &Handle<StandardMaterial>, at: [f32; 3]) -> Entity {
+    pub fn cylinder(&mut self, top: f32, bottom: f32, height: f32, material: &Handle<Toon>, at: [f32; 3]) -> Entity {
         let mesh = self.mesh(meshes::frustum(top, bottom, height, 7, false));
         self.spawn(mesh, material, Transform::from_translation(at.into()), None)
     }
 
-    pub fn sphere(&mut self, radius: f32, material: &Handle<StandardMaterial>, at: [f32; 3]) -> Entity {
+    pub fn sphere(&mut self, radius: f32, material: &Handle<Toon>, at: [f32; 3]) -> Entity {
         let mesh = self.meshes.add(facet(Sphere::new(radius).mesh().uv(8, 6)));
         self.spawn(mesh, material, Transform::from_translation(at.into()), None)
     }
@@ -207,7 +208,7 @@ impl Kit<'_, '_, '_> {
 pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<Toon>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     let mut kit = Kit {
@@ -230,12 +231,12 @@ pub fn setup(
 
     // Floor; the board ceiling follows the roof (see `spawn_roof`).
     let floor_image = kit.image(textures::floor(&mut rng), true);
-    let floor = kit.materials.add(StandardMaterial {
+    let floor = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(floor_image),
         perceptual_roughness: 0.62,
         uv_transform: Affine2::from_scale(Vec2::new(w * 0.6, d * 0.58)),
         ..default()
-    });
+    }));
     kit.cuboid([w * 2.0, 0.15, d * 2.0], &floor, [0.0, -0.08, 0.0]);
 
     // Chinking: the pale mortar behind the logs, showing in the seams.
@@ -257,13 +258,13 @@ pub fn setup(
     spawn_roof(&mut kit, &mut rng);
 
     // Window: cold glass, mullions, sill, and the winter forest outdoors.
-    let glass = kit.materials.add(StandardMaterial {
+    let glass = kit.materials.add(toon(StandardMaterial {
         base_color: hex("#c1d4dc").with_alpha(0.12),
         perceptual_roughness: 0.16,
         clearcoat: 1.0,
         alpha_mode: AlphaMode::Blend,
         ..default()
-    });
+    }));
     let pane = kit.cuboid([0.035, 2.3, 4.9], &glass, [-w, 2.05, -0.5]);
     kit.no_shadow(pane);
     for z in [-3.0f32, 2.0] {
@@ -281,13 +282,13 @@ pub fn setup(
         winter::spawn(&mut kit);
     }
     let frost_image = kit.image(textures::frost(&mut rng), false);
-    let frost = kit.materials.add(StandardMaterial {
+    let frost = kit.materials.add(toon(StandardMaterial {
         base_color: unlit("#9fb2d6", 0.45),
         base_color_texture: Some(frost_image),
         unlit: true,
         alpha_mode: AlphaMode::Blend,
         ..default()
-    });
+    }));
     let frost_mesh = kit.mesh(meshes::quad(4.9, 2.3));
     let frost_pane = kit.spawn(
         frost_mesh,
@@ -318,11 +319,11 @@ pub fn setup(
 
     // Runner rug and its fringes, from the front door toward the back wall.
     let rug_image = kit.image(textures::rug(&mut rng), false);
-    let rug = kit.materials.add(StandardMaterial {
+    let rug = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(rug_image),
         perceptual_roughness: 1.0,
         ..default()
-    });
+    }));
     let (rug_x, rug_z, rug_width, rug_depth) = RUG;
     kit.cuboid([rug_width, 0.025, rug_depth], &rug, [rug_x, 0.02, rug_z]);
     let fringe = kit.mat("#9b8e6e", 0.8, 0.0);
@@ -361,13 +362,13 @@ pub fn setup(
         let cover = kit.mat(color, 0.8, 0.0);
         kit.cuboid([0.34, 0.055, 0.5], &cover, [cx - 0.09, 0.965 + i as f32 * 0.055, cz - 0.75]);
     }
-    let ceramic = kit.materials.add(StandardMaterial {
+    let ceramic = kit.materials.add(toon(StandardMaterial {
         base_color: hex("#88958c"),
         perceptual_roughness: 0.8,
         double_sided: true,
         cull_mode: None,
         ..default()
-    });
+    }));
     let bowl_mesh = kit.mesh(meshes::sphere_segment(0.17, 8, 4, PI * 0.52));
     let bowl = kit.spawn(
         bowl_mesh,
@@ -386,11 +387,11 @@ pub fn setup(
     );
     // The handwriting faces whoever stands at the console.
     let note_image = kit.image(textures::note(), false);
-    let writing = kit.materials.add(StandardMaterial {
+    let writing = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(note_image),
         perceptual_roughness: 0.8,
         ..default()
-    });
+    }));
     let writing_mesh = kit.mesh(meshes::quad(0.35, 0.28));
     let facing_reader = Quat::from_mat3(&Mat3::from_cols(Vec3::Z, Vec3::X, Vec3::Y));
     let page = kit.spawn(
@@ -589,11 +590,11 @@ fn spawn_logs(kit: &mut Kit, rng: &mut Rng) {
     add(rng, d * 2.0, 0.26, Vec3::new(0.0, RIDGE_BEAM, 0.0), along_z);
 
     let image = kit.image(textures::log(rng), true);
-    let material = kit.materials.add(StandardMaterial {
+    let material = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(image),
         perceptual_roughness: 0.82,
         ..default()
-    });
+    }));
     let mesh = kit.meshes.add(logs.build());
     kit.spawn(mesh, &material, Transform::IDENTITY, None);
 }
@@ -611,11 +612,11 @@ fn spawn_roof(kit: &mut Kit, rng: &mut Rng) {
     // Dark decking, glimpsed in the seams between the roof logs.
     let decking = kit.mat("#1c140e", 0.9, 0.0);
     let shingle_image = kit.image(textures::shingles(rng), true);
-    let shingles = kit.materials.add(StandardMaterial {
+    let shingles = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(shingle_image),
         perceptual_roughness: 0.95,
         ..default()
-    });
+    }));
     let boards = kit.mesh(meshes::cuboid(slope, BOARDS, length));
     let shingled = kit.mesh(meshes::tiled_cuboid(slope + 0.05, 0.12, length + 0.2, 1.2));
     for side in [1.0f32, -1.0] {
@@ -644,9 +645,9 @@ fn flame_mesh() -> MeshData {
     ])
 }
 
-fn flame_material(kit: &mut Kit, strength: f32) -> Handle<StandardMaterial> {
+fn flame_material(kit: &mut Kit, strength: f32) -> Handle<Toon> {
     let image = kit.image(textures::flame(), false);
-    kit.materials.add(StandardMaterial {
+    kit.materials.add(toon(StandardMaterial {
         base_color: Color::LinearRgba(LinearRgba::new(strength, strength, strength, 1.0)),
         base_color_texture: Some(image),
         unlit: true,
@@ -654,7 +655,7 @@ fn flame_material(kit: &mut Kit, strength: f32) -> Handle<StandardMaterial> {
         double_sided: true,
         cull_mode: None,
         ..default()
-    })
+    }))
 }
 
 /// A two-tier wrought-iron chandelier of candles, hung on a long chain from
@@ -749,27 +750,27 @@ fn spawn_chandelier(kit: &mut Kit, rng: &mut Rng) {
 
 /// An oil landscape in a carved gilt frame, hung on the back wall with a
 /// brass picture light above it. `wall` is the centre of the frame's back.
-fn spawn_painting(kit: &mut Kit, rng: &mut Rng, wall: Vec3, brass: &Handle<StandardMaterial>) {
+fn spawn_painting(kit: &mut Kit, rng: &mut Rng, wall: Vec3, brass: &Handle<Toon>) {
     let (width, height) = (1.5f32, 1.05f32);
     let image = kit.image(textures::painting(rng), false);
-    let canvas = kit.materials.add(StandardMaterial {
+    let canvas = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(image),
         // A coat of varnish: a faint sheen over matte paint.
         perceptual_roughness: 0.7,
         clearcoat: 0.35,
         clearcoat_perceptual_roughness: 0.45,
         ..default()
-    });
+    }));
     kit.cuboid([width, height, 0.03], &canvas, (wall + Vec3::new(0.0, 0.0, 0.05)).into());
 
     let gilt = |kit: &mut Kit, rng: &mut Rng, leaves: bool| {
         let image = kit.image(textures::gilt(rng, leaves), true);
-        kit.materials.add(StandardMaterial {
+        kit.materials.add(toon(StandardMaterial {
             base_color_texture: Some(image),
             metallic: 0.55,
             perceptual_roughness: 0.42,
             ..default()
-        })
+        }))
     };
     let beads = gilt(kit, rng, false);
     let leaves = gilt(kit, rng, true);
@@ -809,11 +810,11 @@ fn spawn_painting(kit: &mut Kit, rng: &mut Rng, wall: Vec3, brass: &Handle<Stand
     let hood = kit.cylinder(0.045, 0.045, 0.62, brass, [wall.x, top + 0.12, wall.z + 0.3]);
     kit.place(hood, [wall.x, top + 0.12, wall.z + 0.3], Quat::from_rotation_z(FRAC_PI_2));
     kit.no_shadow(hood);
-    let bulb = kit.materials.add(StandardMaterial {
+    let bulb = kit.materials.add(toon(StandardMaterial {
         base_color: unlit("#fff0cf", 1.0),
         unlit: true,
         ..default()
-    });
+    }));
     let strip = kit.cuboid([0.56, 0.012, 0.03], &bulb, [wall.x, top + 0.077, wall.z + 0.3]);
     kit.no_shadow(strip);
     kit.commands.spawn((
@@ -833,10 +834,10 @@ fn spawn_painting(kit: &mut Kit, rng: &mut Rng, wall: Vec3, brass: &Handle<Stand
 }
 
 struct Doors<'m> {
-    wood: &'m Handle<StandardMaterial>,
-    dark_wood: &'m Handle<StandardMaterial>,
-    casing: &'m Handle<StandardMaterial>,
-    brass: &'m Handle<StandardMaterial>,
+    wood: &'m Handle<Toon>,
+    dark_wood: &'m Handle<Toon>,
+    casing: &'m Handle<Toon>,
+    brass: &'m Handle<Toon>,
 }
 
 impl Doors<'_> {
@@ -860,11 +861,11 @@ impl Doors<'_> {
         let knob = kit.meshes.add(facet(Sphere::new(0.065).mesh().uv(6, 4)));
         kit.spawn(knob, self.brass, Transform::from_xyz(0.48, 1.24, 0.32), Some(door));
         let sign_image = kit.image(textures::label(name), false);
-        let sign_material = kit.materials.add(StandardMaterial {
+        let sign_material = kit.materials.add(toon(StandardMaterial {
             base_color_texture: Some(sign_image),
             perceptual_roughness: 0.8,
             ..default()
-        });
+        }));
         let sign = kit.cuboid_in(door, [0.9, 0.265, 0.035], &sign_material, [0.0, 2.38, 0.27]);
         let label = format!("{name} · E to try the door");
         kit.target(panel, label.clone(), Action::Door(name), [1.42, 2.63, 0.1]);
@@ -883,7 +884,7 @@ fn spawn_lamp(kit: &mut Kit, center: Vec3) {
     let linen = kit.image(textures::linen(), false);
     let diffusion = kit.image(textures::diffusion(), false);
     let shade_glow = glow("#ffd29b", 1.3);
-    let shade_material = kit.materials.add(StandardMaterial {
+    let shade_material = kit.materials.add(toon(StandardMaterial {
         base_color_texture: Some(linen),
         perceptual_roughness: 0.95,
         emissive: shade_glow,
@@ -892,18 +893,18 @@ fn spawn_lamp(kit: &mut Kit, center: Vec3) {
         double_sided: true,
         cull_mode: None,
         ..default()
-    });
+    }));
     let shade_mesh = kit.mesh(meshes::frustum(0.19, 0.33, 0.42, 9, true));
     let shade = kit.spawn(shade_mesh, &shade_material, Transform::from_translation(center), None);
     // The fabric transmits light; an opaque shadow from the shade would hide it.
     kit.no_shadow(shade);
     kit.target(shade, "Table lamp · E to switch".into(), Action::Lamp, [0.66, 0.42, 0.66]);
 
-    let filament = kit.materials.add(StandardMaterial {
+    let filament = kit.materials.add(toon(StandardMaterial {
         base_color: unlit("#fff0cf", 1.0),
         unlit: true,
         ..default()
-    });
+    }));
     let bulb = kit.sphere(0.063, &filament, [center.x, 1.57, center.z]);
     kit.no_shadow(bulb);
 
@@ -965,7 +966,7 @@ fn spawn_lamp(kit: &mut Kit, center: Vec3) {
 pub fn toggle_lamp(
     lamp: &mut Lamp,
     lights: &mut Query<(&LampLight, Option<&mut PointLight>, Option<&mut SpotLight>, Option<&mut RectLight>)>,
-    materials: &mut Assets<StandardMaterial>,
+    materials: &mut Assets<Toon>,
     visibility: &mut Query<&mut Visibility>,
 ) -> &'static str {
     lamp.on = !lamp.on;
@@ -982,7 +983,7 @@ pub fn toggle_lamp(
         }
     }
     if let Some(mut shade) = materials.get_mut(&lamp.shade) {
-        shade.emissive = if lamp.on { lamp.shade_glow } else { LinearRgba::BLACK };
+        shade.base.emissive = if lamp.on { lamp.shade_glow } else { LinearRgba::BLACK };
     }
     if let Ok(mut bulb) = visibility.get_mut(lamp.bulb) {
         *bulb = if lamp.on { Visibility::Inherited } else { Visibility::Hidden };

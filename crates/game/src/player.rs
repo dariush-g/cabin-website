@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 
 use crate::bridge::{self, Command, Move};
+use crate::cel::Toon;
 use crate::hall::{self, Action, Colliders, Lamp, LampLight, Target};
 
 const START: Vec3 = Vec3::new(0.8, 1.65, 6.6);
@@ -209,7 +210,7 @@ pub fn aim_and_interact(
     targets: Query<(Entity, &GlobalTransform, &Target)>,
     mut lamp: ResMut<Lamp>,
     mut lights: Query<(&LampLight, Option<&mut PointLight>, Option<&mut SpotLight>, Option<&mut RectLight>)>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<Toon>>,
     mut visibility: Query<&mut Visibility>,
 ) {
     let wants_to_interact = std::mem::take(&mut visitor.wants_to_interact);

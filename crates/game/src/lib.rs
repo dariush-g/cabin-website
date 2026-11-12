@@ -4,6 +4,7 @@
 //! [`bridge`] for how the two sides talk.
 
 mod bridge;
+mod cel;
 mod hall;
 mod meshes;
 mod player;
@@ -58,7 +59,8 @@ pub fn run(
             ..default()
         }),
         ..default()
-    }));
+    }))
+    .add_plugins(cel::CelPlugin);
 
     // Keep the console report Bevy's log plugin installs, and tell the page.
     let console_hook = std::panic::take_hook();
