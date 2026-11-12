@@ -293,6 +293,13 @@ async function start(): Promise<void> {
   }
 }
 
+// Record clicks for the heatmap. Loaded lazily so it never delays the house,
+// and skipped for local development, for the heatmap's own preview frame, and
+// for visitors who ask not to be tracked.
+if (location.hostname !== 'localhost' && window.top === window && navigator.doNotTrack !== '1') {
+  import('./track').then((track) => track.trackClicks()).catch(() => {});
+}
+
 start().catch((error: unknown) => {
   console.error(error);
   showError();

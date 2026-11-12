@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Click heatmap — The House</title>
+  <link rel="icon" href="/house.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap">
+  <style>
+    :root{color-scheme:dark;font-family:'Libre Caslon Text',Georgia,serif;color:#ede8d9;background:#171d19}
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;overflow:hidden}
+    /* The live page sits underneath, inert, so the heat lines up with what visitors saw. */
+    iframe,#heat{position:fixed;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+    iframe{filter:brightness(.55) saturate(.7)}
+    .bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;max-width:calc(100% - 32px);padding:10px 16px;font-size:12px;letter-spacing:.5px;background:#1e2822e6;border:1px solid #8a96816b}
+    .eyebrow{font-size:9px;letter-spacing:3px;color:#d9ccac}
+    label{display:flex;align-items:center;gap:6px;color:#c5c8b8}
+    select{font:inherit;color:inherit;background:#101714;border:1px solid #8a96816b;padding:4px 6px}
+    select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #edc38b;outline-offset:3px}
+    a{color:#d9ccac}
+  </style>
+</head>
+<body>
+  <iframe src="./" title="The house, as visitors see it" tabindex="-1" aria-hidden="true"></iframe>
+  <canvas id="heat" aria-label="Heatmap of visitor clicks"></canvas>
+  <div class="bar">
+    <span class="eyebrow">CLICK HEATMAP</span>
+    <span id="status" role="status">Loading…</span>
+    <label>Pointer
+      <select id="kind">
+        <option value="all">All</option>
+        <option value="mouse">Mouse</option>
+        <option value="touch">Touch</option>
+      </select>
+    </label>
+    <label><input id="locked" type="checkbox"> Include in-game clicks</label>
+    <a href="./">Back to the house</a>
+  </div>
+  <script type="module" src="/src/heatmap.ts"></script>
+</body>
+</html>
